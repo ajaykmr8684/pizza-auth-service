@@ -1,8 +1,3 @@
-function login(username: string): string {
-  const test = {
-    name: 'Ajay',
-  };
-  return username + test.name;
-}
+import { Config } from './config';
 
-login('ajay');
+console.log('PORT', Config.NODE_ENV);
