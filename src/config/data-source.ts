@@ -11,7 +11,7 @@ export const AppDataSource = new DataSource({
   password: Config.DB_PASSWORD,
   database: Config.DB_NAME,
   //DON't USE THIS synchronize in production -> it makes new tables as soon you write some entities which is not suitable for production env.
-  synchronize: Config.NODE_ENV === 'test' || Config.NODE_ENV === 'dev',
+  synchronize: false,
   logging: false,
   entities: [User],
   migrations: [],
