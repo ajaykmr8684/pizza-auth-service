@@ -3,6 +3,11 @@ import { RegisterUserRequest } from '../types';
 import { UserService } from '../services/UserService';
 import { Logger } from 'winston';
 import { validationResult } from 'express-validator';
+import { JwtPayload, sign } from 'jsonwebtoken';
+import createHttpError from 'http-errors';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { Config } from '../config';
 
 export class AuthController {
   userService: UserService;
@@ -19,13 +24,16 @@ export class AuthController {
     if (!result.isEmpty()) {
       return res.status(400).json({ errors: result.array() });
     }
+
     const { firstName, lastName, email, password } = req.body;
+
     this.logger.debug('New request to register a user', {
       firstName,
       lastName,
       email,
       password: '*******',
     });
+
     try {
       const createdUser = await this.userService.create({
         firstName,
@@ -36,6 +44,51 @@ export class AuthController {
       this.logger.info('User has been successfully registered', {
         id: createdUser.id,
       });
+
+      //Creating cookies
+
+      let privateKey: Buffer;
+
+      try {
+        privateKey = readFileSync(
+          path.join(__dirname, '../../certs/private.pem'),
+        );
+      } catch (error) {
+        const err = createHttpError(500, 'Error while reading Private Key');
+        next(err);
+        return;
+      }
+
+      const payload: JwtPayload = {
+        sub: String(createdUser.id),
+        role: createdUser.role,
+      };
+
+      const accessToken = sign(payload, privateKey, {
+        algorithm: 'RS256',
+        expiresIn: '1h',
+        issuer: 'auth-service',
+      });
+      const refreshToken = sign(payload, Config.REFRESH_TOKEN_SECRET!, {
+        algorithm: 'HS256',
+        expiresIn: '1y',
+        issuer: 'auth-service',
+      });
+
+      res.cookie('accessToken', accessToken, {
+        domain: 'localhost',
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60, //1h
+        httpOnly: true,
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        domain: 'localhost',
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 365, //1y
+        httpOnly: true,
+      });
+
       res.status(200).json({ id: createdUser.id });
     } catch (err) {
       next(err);
