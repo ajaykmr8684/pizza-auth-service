@@ -3,11 +3,9 @@ import { RegisterUserRequest } from '../types';
 import { UserService } from '../services/UserService';
 import { Logger } from 'winston';
 import { validationResult } from 'express-validator';
-import { JwtPayload, sign } from 'jsonwebtoken';
-import createHttpError from 'http-errors';
-import { readFileSync } from 'fs';
-import path from 'path';
-import { Config } from '../config';
+import { JwtPayload } from 'jsonwebtoken';
+
+import { TokenService } from '../services/TokenService';
 
 export class AuthController {
   userService: UserService;
@@ -15,6 +13,7 @@ export class AuthController {
   constructor(
     userService: UserService,
     private logger: Logger,
+    private tokenService: TokenService,
   ) {
     this.userService = userService;
   }
@@ -47,32 +46,18 @@ export class AuthController {
 
       //Creating cookies
 
-      let privateKey: Buffer;
-
-      try {
-        privateKey = readFileSync(
-          path.join(__dirname, '../../certs/private.pem'),
-        );
-      } catch (error) {
-        const err = createHttpError(500, 'Error while reading Private Key');
-        next(err);
-        return;
-      }
-
       const payload: JwtPayload = {
         sub: String(createdUser.id),
         role: createdUser.role,
       };
 
-      const accessToken = sign(payload, privateKey, {
-        algorithm: 'RS256',
-        expiresIn: '1h',
-        issuer: 'auth-service',
-      });
-      const refreshToken = sign(payload, Config.REFRESH_TOKEN_SECRET!, {
-        algorithm: 'HS256',
-        expiresIn: '1y',
-        issuer: 'auth-service',
+      const accessToken = this.tokenService.generateAccessToken(payload);
+      const persistedRefreshToken =
+        await this.tokenService.persistRefreshToken(createdUser);
+
+      const refreshToken = this.tokenService.generateRefreshToken({
+        ...payload,
+        id: String(persistedRefreshToken.id),
       });
 
       res.cookie('accessToken', accessToken, {
