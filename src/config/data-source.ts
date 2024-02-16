@@ -12,7 +12,7 @@ export const AppDataSource = new DataSource({
   password: Config.DB_PASSWORD,
   database: Config.DB_NAME,
   //DON't USE THIS synchronize in production -> it makes new tables as soon you write some entities which is not suitable for production env.
-  synchronize: false,
+  synchronize: true,
   logging: false,
   entities: [User, RefreshToken],
   migrations: [],
