@@ -34,4 +34,18 @@ export class UserService {
       throw error;
     }
   }
+
+  /**
+   * This method finds the user if it exists
+   *
+   * @param email Entered email by the user
+   * @returns True if user exists
+   */
+  async findByEmail(email: string) {
+    return await this.userRepository.findOne({
+      where: {
+        email,
+      },
+    });
+  }
 }
