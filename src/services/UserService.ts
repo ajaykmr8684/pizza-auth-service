@@ -48,4 +48,18 @@ export class UserService {
       },
     });
   }
+
+  /**
+   * This method finds the user if it exists using Id
+   *
+   * @param id user id
+   * @returns True if user exists
+   */
+  async findById(id: number) {
+    return await this.userRepository.findOne({
+      where: {
+        id,
+      },
+    });
+  }
 }
