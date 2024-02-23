@@ -90,6 +90,7 @@ web_modules/
 .next
 out
 certs/
+public/
 
 # Nuxt.js build / generate output
 .nuxt
